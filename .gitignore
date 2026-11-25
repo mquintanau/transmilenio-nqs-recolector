@@ -1,0 +1,24 @@
+# Entornos virtuales y caché de Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Sistema operativo y credenciales locales
+.DS_Store
+.env
+.env.*
+
+# Datos crudos y derivados reproducibles mediante la CLI
+datos_nqs/
+
+# Otros archivos locales del curso / auxiliares no incluidos en este paquete
+Taller4_Redes_y_PE.ipynb
+U5_Ruta_mas_corta_Estudiantes.ipynb
+U5_Transporte_y_Asignacion_PuLP_Resuelto.ipynb
+recolector_nqs.py
+README_NQS.md
+nqs/operating_metrics.py
+tests/test_operating_metrics.py

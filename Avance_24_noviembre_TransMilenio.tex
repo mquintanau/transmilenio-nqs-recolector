@@ -1,0 +1,136 @@
+% Reconstrucción editable del PDF del avance (24/11/2026).
+% Compilar con XeLaTeX en Overleaf o localmente.
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=0.75in,bottom=0.78in]{geometry}
+\usepackage{fontspec}
+\usepackage[spanish,es-nodecimaldot]{babel}
+\usepackage{amsmath,amssymb,booktabs,array,xcolor,fancyhdr,hyperref}
+\definecolor{azul}{HTML}{17445E}
+\definecolor{gris}{HTML}{53616C}
+\hypersetup{colorlinks=true,urlcolor=azul,linkcolor=azul,pdftitle={Avance del Parcial 2 aplicado},pdfsubject={Asignación de buses de refuerzo en la NQS}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlength{\headheight}{14pt}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[L]{\sffamily\footnotesize\color{gris} Optimización\quad /\quad Parcial 2 aplicado}
+\fancyfoot[R]{\sffamily\footnotesize\color{gris}\thepage}
+\newcommand{\apartado}[1]{\par\vspace{3pt}{\sffamily\bfseries\color{azul}#1}\par\vspace{1pt}}
+\newcommand{\flecha}{\ensuremath{\to}\allowbreak\ }
+\begin{document}
+{\sffamily\bfseries\color{azul} UNIVERSIDAD NACIONAL DE COLOMBIA $\cdot$ SEDE BOGOTÁ}\par
+{\sffamily\footnotesize Avance del Parcial 2 aplicado $\cdot$ 24 de noviembre de 2026}\par
+\vspace{8pt}
+{\sffamily\Large\bfseries Buses de refuerzo en la NQS durante la lluvia}\par
+\vspace{3pt}
+\textbf{Integrantes} \rule{0.49\linewidth}{0.4pt}\hfill\textbf{Grupo} \rule{0.085\linewidth}{0.4pt}
+
+\apartado{Escenario y alcance}
+En una hora pico de un día hábil (07:00--08:00), TransMilenio debe decidir cuántos buses de refuerzo asignar a cuatro servicios existentes. La red abarca E (NQS Central) y G (NQS Sur), incluidos los ramales de La Castellana y de la Calle 6, y conserva la conexión Bosa--Soacha hasta San Mateo para representar los viajes hacia la NQS. La oferta regular se toma como fija. Se modela la demanda que requiere refuerzo en el sentido hacia el centro y el norte, con viajes directos. Se supone operación estable, con buses ya en circulación y ciclos de ida y regreso. El anexo identifica las estaciones y sus conexiones por servicio.
+
+\apartado{Datos y supuestos de la instancia}
+\textbf{Red y recorridos.} Los nombres y el orden de las paradas se contrastaron con la guía oficial de agosto de 2026 y el buscador de TransMilenio [1--3]. La estación Sena se incluye en el inventario del corredor. A la fecha del avance está fuera de servicio por obras, por lo que los buses pasan por el tramo Santa Isabel--NQS Calle 30 Sur sin detenerse en Sena [4].
+
+\textbf{Capacidad y lluvia.} Se suponen hasta 27 buses de refuerzo dedicados y un cupo operativo de 60 pasajeros por salida adicional. El cupo representa una meta conservadora de ocupación para el refuerzo. La flota es una reserva hipotética compartida por los cuatro servicios. Los tiempos de ida y regreso se aproximan a partir de la extensión y las paradas de cada servicio. El aumento del 20\,\% o 40\,\% se aplica solo al tiempo de circulación en la NQS. Se mantienen los tiempos exteriores y de regulación.
+
+\begin{center}
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+\textbf{Servicio de ida / regreso}&\textbf{En NQS}&\textbf{Fuera de NQS}&\textbf{Regulación}&\textbf{Ciclo base}\\
+\midrule
+4 / 4 &86&8&10&104\\
+B12 / G12 &72&55&9&136\\
+E42 / S42 &69&17&10&96\\
+M47 / G47 &50&24&10&84\\
+\bottomrule
+\end{tabular}\par
+{\footnotesize Tiempos supuestos en minutos por ciclo de ida y regreso.}
+\end{center}
+
+\textbf{Demanda residual.} Se usan nueve pares origen--destino que cubren el eje, los ramales y la conexión con Soacha. Se supone más demanda en viajes desde Portal Sur, General Santander y San Mateo hacia estaciones centrales. Los valores de 65 a 140 pasajeros por par requieren de dos a tres salidas con el cupo supuesto, antes de considerar la capacidad compartida. Son insumos de planeación de una instancia académica. Las validaciones oficiales permiten contrastar entradas por estación y franja, pero agregarlas no identifica el destino de cada viaje [5].
+
+{\centering\small\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llr@{\qquad}llr@{}}
+\toprule
+\textbf{Origen}&\textbf{Destino}&\textbf{Pas.}&\textbf{Origen}&\textbf{Destino}&\textbf{Pas.}\\
+\midrule
+Portal Sur & Universidad Nacional &110 & Bosa & Comuneros &85\\
+General Santander & 7 de Agosto &100 & Portal Sur & Tygua-San José &75\\
+Madelena & CAD &85 & Sevillana & Guatoque-Veraguas &65\\
+Paloquemao & Campín--UAN &70 & Ricaurte & La Castellana &80\\
+San Mateo & Universidad Nacional &140 & \textbf{Demanda total} &&\textbf{810}\\
+\bottomrule
+\end{tabular}\par}
+
+\newpage
+\apartado{Bloque A $\cdot$ Programación lineal entera}
+Sea $S$ el conjunto de servicios y $K$ el conjunto de pares origen--destino. Para $k\in K$, $d_k$ es su demanda y $S_k\subseteq S$ contiene los servicios que paran en el origen y luego en el destino. Para cada $s\in S$, $A_s$ son los tramos entre paradas consecutivas en el sentido analizado y $A_{ks}\subseteq A_s$ son los tramos que el par $k$ ocupa en ese servicio. $C_s(r)$ es el ciclo en minutos con lluvia $r$, calculado como $(1+r)$ por el tiempo NQS más el tiempo exterior y la regulación.
+
+\textbf{Variables enteras no negativas.} $x_s$ son las salidas de refuerzo por hora, en cada sentido, $n_s$ los buses asignados durante la hora, $y_{ks}$ los pasajeros del par $k$ atendidos en $s$ y $u_k$ los pasajeros del par sin cupo en el refuerzo.
+\[
+\underset{x,n,y,u}{\min\,\mathrm{lex}}\quad
+\left(\sum_{k\in K} u_k,\ c\sum_{s\in S} n_s,\ \sum_{s\in S} x_s\right)
+\]
+\begin{align*}
+\sum_{s\in S_k}y_{ks}+u_k &= d_k && k\in K\\
+\sum_{\substack{k:\,s\in S_k\\ a\in A_{ks}}} y_{ks}&\le 60x_s && s\in S,\ a\in A_s\\
+C_s(r)x_s&\le 60n_s &&s\in S\\
+\sum_{s\in S} n_s&\le 27.
+\end{align*}
+La primera restricción conserva la demanda y la segunda evita contar dos veces el mismo cupo en un tramo. La tercera convierte frecuencia en buses disponibles bajo una programación regular. El objetivo prioriza cubrir la demanda, luego usa la menor cantidad de bus-horas asignadas y, ante empate, programa menos salidas. El costo $c>0$ por bus-hora sin combustible se supone común, por lo que basta minimizar $\sum_s n_s$ en la segunda etapa. Se omite la densidad poblacional.
+
+\apartado{Solución y sensibilidad}
+Se resolvieron los tres objetivos en orden con HiGHS (\texttt{scipy.optimize.milp}), fijando el óptimo de cada etapa antes de pasar a la siguiente. Los vectores están en el orden (4, B12, E42, M47). Se muestra una solución óptima por escenario.
+
+\begin{center}\small
+\begin{tabular}{@{}lllrrr@{}}
+\toprule
+\textbf{Escenario}&\textbf{Salidas/h}&\textbf{Buses por servicio}&\textbf{Total}&\textbf{Atendidos}&\textbf{Sin cupo}\\
+\midrule
+Normal & $(5,2,4,3)$ & $(9,5,7,5)$ &26&810&0\\
+Lluvia +20\,\% & $(5,1,4,3)$ & $(11,3,8,5)$ &27&790&20\\
+Lluvia +40\,\% & $(2,4,3,2)$ & $(5,11,7,4)$ &27&730&80\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Con lluvia del 20\,\%, se mantiene la frecuencia de la 4 con dos buses adicionales y se reduce B12. Quedan 20 pasajeros del par Ricaurte--La Castellana sin cupo. Al 40\,\%, B12 asume parte de la demanda que atendía la 4, como Portal Sur--Universidad Nacional. Los trayectos exclusivos de los servicios con menos salidas quedan más expuestos. En la solución mostrada, el mayor faltante individual es San Mateo--Universidad Nacional (45 pasajeros).
+
+\textbf{Efecto de fijar una variable.} Con lluvia del 20\,\%, fijar $x_{\mathrm{E42}}=3$ y reoptimizar eleva de 20 a 60 los pasajeros sin cupo. El mejor plan restringido usa 26 buses. Autorizar la cuarta salida de E42 permite atender 40 pasajeros adicionales en total con un bus asignado más. El resultado es un efecto discreto para esta instancia.
+
+\newpage
+\apartado{Anexo $\cdot$ Estaciones y conexiones de la red}
+Los arcos del modelo conectan paradas consecutivas de cada servicio. Un arco expreso puede atravesar estaciones sin ofrecer ascenso ni descenso allí. Se listan en el orden de ida modelado. Para el ciclo completo se consideran los retornos publicados de cada servicio.
+
+\textbf{Ruta 4 hacia Héroes [2].}\par\nopagebreak
+Portal Sur -- JFK Coop. Financiera \flecha Perdomo \flecha C. C. Paseo Villa del Río--Madelena \flecha Sevillana \flecha Venecia \flecha Alquería \flecha General Santander \flecha NQS Calle 38A Sur--Centro Mayor \flecha NQS Calle 30 Sur \flecha Santa Isabel \flecha Comuneros \flecha Ricaurte \flecha Paloquemao \flecha CAD \flecha Av. El Dorado \flecha Universidad Nacional \flecha Campín--UAN \flecha TIGO (Movistar Arena en la guía) \flecha 7 de Agosto \flecha Avenida Chile \flecha NQS Calle 75 \flecha Escuela Militar \flecha Polo--Fincomercio \flecha Héroes--Colmena Seguros.
+
+\textbf{B12 hacia Portal Norte [3].}\par\nopagebreak
+Portal Sur \flecha Perdomo \flecha General Santander \flecha Comuneros \flecha Ricaurte \flecha Av. El Dorado \flecha Universidad Nacional \flecha 7 de Agosto \flecha NQS Calle 75 \flecha La Castellana \flecha Calle 100 \flecha Calle 127 \flecha Prado \flecha Calle 142 \flecha Toberín \flecha Portal Norte.
+
+\textbf{E42 hacia 7 de Agosto [3].}\par\nopagebreak
+San Mateo \flecha Terreros--Hospital Cardiovascular \flecha León XIII \flecha La Despensa \flecha Bosa \flecha Comuneros \flecha Paloquemao \flecha Universidad Nacional \flecha Campín--UAN \flecha 7 de Agosto.
+
+\textbf{M47 hacia Museo Nacional [3].}\par\nopagebreak
+Portal Sur \flecha Perdomo \flecha Madelena \flecha Sevillana \flecha NQS Calle 38A Sur--Centro Mayor \flecha Comuneros \flecha Guatoque--Veraguas \flecha Tygua--San José \flecha San Victorino \flecha Las Nieves \flecha San Diego \flecha Museo Nacional.
+
+\textbf{Cobertura de E y G.} En la Ruta 4, el eje de E se extiende de NQS Calle 75 a Ricaurte y el de G, de Comuneros a Portal Sur. B12 incorpora La Castellana, M47 incorpora las dos estaciones del ramal de la Calle 6 y E42 incorpora Bosa y la continuación operativa hacia Soacha. Sena queda como nodo de infraestructura sin embarque. Los tramos exteriores a E/G se conservan para representar los ciclos de los servicios elegidos. La demanda exterior incluida se concentra en los viajes desde Soacha hacia la NQS.
+
+\apartado{Fuentes consultadas}
+% Enlaces recuperados de las anotaciones del PDF original, no reconsultados.
+{\small
+[1] TransMilenio S. A. \href{https://www.transmilenio.gov.co/comunicaciones/publicaciones/2024/guia-general-de-viaje-de-transmilenio}{Guía general de viaje, versión agosto de 2026}. Mapa y nomenclatura de troncales.
+
+[2] TransMilenio S. A. Buscador oficial, Ruta 4, \href{https://buscador-rutas.transmilenio.gov.co/rutas/688/4/TransMilenio/H\%C3\%A9roes}{hacia Héroes} y \href{https://buscador-rutas.transmilenio.gov.co/rutas/687/4/TransMilenio/H\%C3\%A9roes\%20-\%20Portal\%20Sur\%20-\%20JFK\%20Coop.Financiera}{hacia Portal Sur}.
+
+[3] TransMilenio S. A. Buscador oficial, \href{https://buscador-rutas.transmilenio.gov.co/rutas/349/B12/TransMilenio/P.\%20Norte}{B12}/\href{https://buscador-rutas.transmilenio.gov.co/rutas/350/G12/TransMilenio/P.\%20Sur}{G12}, \href{https://buscador-rutas.transmilenio.gov.co/rutas/1174/E42/TransMilenio/San\%20Mateo\%20-\%20C.C.\%20Unisur\%20-\%207\%20de\%20Agosto}{E42}/\href{https://buscador-rutas.transmilenio.gov.co/rutas/5653/S42/TransMilenio/San\%20Mateo}{S42} y \href{https://buscador-rutas.transmilenio.gov.co/rutas/384/M47/TransMilenio/Museo\%20Nacional}{M47}/\href{https://buscador-rutas.transmilenio.gov.co/rutas/385/G47/TransMilenio/Portal\%20Sur}{G47}.
+
+[4] Alcaldía Mayor de Bogotá. \href{https://bogota.gov.co/mi-ciudad/movilidad/2026-10/obras-para-habilitar-la-estacion-de-transmilenio-del-sena-en-bogota}{Obras para habilitar la estación Sena}, 26 de octubre de 2026.
+
+[5] TransMilenio S. A. \href{https://validaciones.datosabiertos.transmilenio.gov.co/validaciones_mensuales.html}{Validaciones troncales por estación e intervalo}. Fuente disponible para contrastar la demanda.
+
+\href{https://github.com/croma-labs/paradero}{Paradero (Croma Labs)} documenta una vía complementaria de consulta de rutas y paradas a partir de datos abiertos; los recorridos del modelo se tomaron del buscador oficial.
+}
+\end{document}
